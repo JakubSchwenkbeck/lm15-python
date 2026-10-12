@@ -147,7 +147,8 @@ store.
 | ChatGPT / Codex | LM15-owned device login | Separate memory-only login and inference observed **2026-09-23**. Device persistence/renewal were not separately tested; permission and billing remain **unverified**. |
 | OpenRouter | Browser approval → API key | Key issuance, $1 limit inspection, model discovery, inference and fresh-process reuse observed **2026-09-23**. No refresh-token flow; broader support review remains pending. |
 | GitHub Copilot | Device login → Copilot token | github.com login, catalog, inference, fresh-process persistence and one early renewal observed **2026-09-23**. Uses the public Copilot Chat app registration; permission and billing remain **unverified**. |
-| Claude (loopback), Meta, Kimi Code | Other LM15-owned login methods | **unverified**: implemented, no live LM15 receipt; `login(..., allow_unverified=True)` to try |
+| Meta (Muse Code subscription) | Device login → the account's Muse Code key | Login, key mint, re-mint and inference on `muse-wonder-full-1.0` observed **2026-10-12** (Power Usage plan). Stays **unverified**: Meta's terms reserve this key for Muse Code (see below). |
+| Claude (loopback), Kimi Code | Other LM15-owned login methods | **unverified**: implemented, no live LM15 receipt; `login(..., allow_unverified=True)` to try |
 | Radius | — | **unavailable**: its model protocol is not in lm15-python |
 
 An unverified method is never offered by the default picker. Promotion to
@@ -179,6 +180,33 @@ Renewal was triggered early with a process-local freshness override; saved expir
 and the wall clock were not falsified. This does not prove an unattended full
 expiry cycle, provider permission or included billing. Both methods still require
 `allow_unverified=True`, and the existing CLI credential route remains available.
+
+### Meta: the Muse Code subscription (Muse Wonder Full)
+
+```python
+auth.login("meta", "device", ui=TerminalUI(), allow_unverified=True)
+router = LMRouter(RouterConfig(auth=auth))
+router.lm("meta:muse-wonder-full-1.0")
+```
+
+You approve a code at `auth.meta.com` with the Meta account that holds the
+Muse Code plan. Meta then hands out that account's Muse Code key. It is the
+same key every time, so lm15 renewing it daily never logs Muse Code out. The
+connection's `account_label` names the plan (for example "Muse Code Power
+Usage"), or says "no Muse Code subscription (pay-as-you-go)" when Meta
+bills the key per token. `muse-wonder-full-1.0` needs the Power or Maximum
+Usage plan; `muse-wonder-1.0` and the Muse Spark models work on every plan.
+Under a managed `Auth`, a `META_API_KEY` in the environment is not used, so
+requests stay on the plan. Today only the `meta:` route uses the connection.
+
+**Read this before using it.** Meta's Model API terms (updated 2026-10-09,
+§ 3.2) say the Muse Code key "may not be used to access the Services
+outside the coding harness". lm15 is not Muse Code, so this use is outside
+those terms. The account at risk is your Meta account, the one shared with
+Facebook, Instagram and WhatsApp. Subscription traffic is also in
+Contributor mode by default (§ 3.3): Meta may train on your prompts unless
+you turn that off in Muse Code's `/settings`. lm15 identifies itself as
+lm15 and does not imitate Muse Code.
 
 ### OpenRouter: no manual key handling, but still a key
 

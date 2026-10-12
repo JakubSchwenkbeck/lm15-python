@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+- **The Meta login reaches the Muse Code subscription, Muse Wonder Full
+  included.** `auth.login("meta", "device", allow_unverified=True)` was
+  tested live on 2026-10-12 with a Power Usage plan: login, key, renewal,
+  then `complete` and `stream` on `meta:muse-wonder-full-1.0`. Requests now
+  go to the address Meta names when it hands out the key, and only to a
+  `meta.ai` address; any other address is refused before the key is sent.
+  The connection's `account_label` names the plan. The method stays
+  `unverified` because Meta's terms reserve this key for Muse Code
+  (`docs/managed-login.md` says what that risks). lm15-contract `88bb560`.
+
 ## 1.2.3 — 2026-10-10
 
 Two conveniences that make a first program work, and clearer messages

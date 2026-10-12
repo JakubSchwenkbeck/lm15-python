@@ -856,3 +856,70 @@ def test_external_claude_cli_source_reads_in_place(sandbox: Path, monkeypatch: p
     assert auth.request_auth("claude-code").credential.value == ACCESS
     auth.logout("claude-code")
     assert json.loads(claude.read_text(encoding="utf-8"))["claudeAiOauth"]["accessToken"] == ACCESS  # the tool's file is untouched
+
+
+# ─── Meta (Muse Code subscription): the mint reply decides address and plan ──
+
+
+class FakeMeta:
+    """auth.meta.com device endpoints and the Muse Code key mint, shaped as
+    observed live 2026-10-12 (lm15-contract receipts/2026-10-12-muse-code/)."""
+
+    def __init__(self, mint: dict) -> None:
+        self.mint = mint
+        self.calls: list[str] = []
+
+    def __call__(self, request: urllib.request.Request, timeout: float):
+        url = request.full_url
+        self.calls.append(url)
+        if url.endswith("/oidc/device/authorization/"):
+            return _Reply(200, {"device_code": f"{SENTINEL}-device", "user_code": "ABCD-1234",
+                                "verification_uri": "https://auth.meta.com/oauth/device/", "interval": 1,
+                                "expires_in": 600})
+        if url.endswith("/oidc/device/token/"):
+            return _Reply(200, {"access_token": f"{SENTINEL}-identity", "token_type": "Bearer"})
+        if url == "https://api.meta.ai/muse-code/key":
+            return _Reply(200, self.mint)
+        raise AssertionError(f"unexpected request {url}")
+
+
+def test_meta_subscription_key_goes_where_the_mint_says(sandbox: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = Clock()
+    server = FakeMeta({"api_key": ACCESS, "base_url": "https://eu.api.meta.ai/v1/", "is_subs_active": True,
+                       "subs_tier_name": "Muse Code Power Usage"})
+    auth = make_auth(sandbox, clock, server)
+    connection = auth.login("meta", "device", ui=ScriptUI(), allow_unverified=True)
+    assert connection.account_label == "Muse Code Power Usage"
+    no_secret(connection, auth.status("meta"))
+    # The environment key is never a fallback under a managed Auth (AUTH-15):
+    # a subscriber's requests stay on the plan.
+    transport = FakeTransport([FakeResponse(200, json.dumps({
+        "id": "r", "object": "response", "status": "completed", "model": "muse-wonder-full-1.0",
+        "output": [{"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "OK"}]}],
+        "usage": {"input_tokens": 1, "output_tokens": 1, "total_tokens": 2}}).encode())])
+    router = LMRouter(RouterConfig(auth=auth, env={"META_API_KEY": "payg"}, transport=transport))
+    lm = router.lm("meta:muse-wonder-full-1.0")
+    assert "managed connection" in lm.credential_origin()
+    from lm15 import Request
+
+    assert lm.complete(Request(model="muse-wonder-full-1.0", messages=(Message.user("hi"),))).text == "OK"
+    sent = transport.requests[0]
+    assert sent.url == "https://eu.api.meta.ai/v1/responses"
+    assert {k.lower(): v for k, v in sent.headers}["authorization"] == f"Bearer {ACCESS}"
+
+
+@pytest.mark.parametrize("base_url", ["http://api.meta.ai/v1", "https://api.meta.ai.example.com/v1",
+                                      "https://user:pw@api.meta.ai/v1", 42])
+def test_meta_mint_address_outside_meta_ai_is_refused(sandbox: Path, base_url: object) -> None:
+    auth = make_auth(sandbox, Clock(), FakeMeta({"api_key": ACCESS, "base_url": base_url}))
+    with pytest.raises(AuthOperationError) as info:
+        auth.login("meta", "device", ui=ScriptUI(), allow_unverified=True)
+    no_secret(info.value)
+    assert auth.status("meta").presence == "absent"
+
+
+def test_meta_without_a_plan_says_pay_as_you_go(sandbox: Path) -> None:
+    auth = make_auth(sandbox, Clock(), FakeMeta({"api_key": ACCESS, "base_url": "https://api.meta.ai/v1",
+                                                 "is_subs_active": False}))
+    connection = auth.login("meta", "device", ui=ScriptUI(), allow_unverified=True)
+    assert connection.account_label == "no Muse Code subscription (pay-as-you-go)"
