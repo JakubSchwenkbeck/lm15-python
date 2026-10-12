@@ -1,9 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 — 2026-10-12
 
-- **The Meta login reaches the Muse Code subscription, Muse Wonder Full
-  included.** `auth.login("meta", "device", allow_unverified=True)` was
+The Muse Code subscription, Muse Wonder Full included (lm15-contract
+`88bb560`, 1,905 of 1,905 checks).
+
+- **The Meta login reaches the Muse Code subscription.** `auth.login("meta", "device", allow_unverified=True)` was
   tested live on 2026-10-12 with a Power Usage plan: login, key, renewal,
   then `complete` and `stream` on `meta:muse-wonder-full-1.0`. Requests now
   go to the address Meta names when it hands out the key, and only to a

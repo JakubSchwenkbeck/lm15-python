@@ -7,9 +7,11 @@ same discipline as the code — see
 
 ## Where we are (October 2026)
 
-- **1.2.3** is the current release (2026-10-10): a structured answer
-  reads through `response.text`/`.json`, and a thinking budget alone is
-  enough, on top of **1.2.2** (2026-10-10: a refused key is `AuthError` on
+- **1.3.0** is the current release (2026-10-12): the Meta login reaches
+  the Muse Code subscription (Muse Wonder Full included), on top of
+  **1.2.3** (2026-10-10: a structured answer reads through
+  `response.text`/`.json`, and a thinking budget alone is enough),
+  **1.2.2** (2026-10-10: a refused key is `AuthError` on
   Gemini and xAI too, and a key passed as `credential=` is never printed), **1.2.1** (2026-10-06: long streamed replies and
   tools without a description fixed), **1.2.0** (2026-09-30: the
   Claude Code release as a setting, and Claude's own output ceiling as the
