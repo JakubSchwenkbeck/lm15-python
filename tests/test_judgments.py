@@ -24,7 +24,7 @@ from lm15.errors import AuthError, InvalidRequestError, UnsupportedFeatureError,
 from lm15.judgments import anthropic_schema, gemini_schema, judgments_in_schema, normalize_logprobs, replace_text_with_data
 from lm15.providers import AnthropicLM, GeminiLM, OpenAIChatLM, OpenAILM
 from lm15.testing import FakeResponse, FakeTransport
-from lm15.types import FunctionTool, TextPart
+from lm15.types import FunctionTool, TextPart, audio, image
 
 WINE = judgments(
     quality=score("How good?", {"bad": "Bad wine", "ok": "Fine wine", "great": "Great wine"}),
@@ -167,6 +167,40 @@ def test_typesafe_state_shapes_and_refusals() -> None:
         assert exc.value.feature == feature
     with pytest.raises(UnsupportedFeatureError):
         lm.build_request(Request(model="jev-latest", messages=(NOTE,), config=Config(response_format=WINE)), stream=True)
+
+
+def test_typesafe_images_become_assets_named_in_the_state() -> None:
+    # changes/2026-10-14-jev-images.md: an image is its reference in the state, its bytes an asset.
+    lm = TypeSafeLM(api_key="k")
+    fmt = Config(response_format=judgments(circle=yes_no("Is there a red circle in the image?")))
+    png, jpg = "iVBORw0KGgo=", "/9j/4AAQ"
+    one = Request(model="jev-latest", messages=(Message.user(image(data=png, media_type="image/png")),), config=fmt)
+    built = lm.build_request(one, stream=False)
+    wire = json.loads(built.body)
+    assert list(wire) == ["model", "state", "assets", "questions"]
+    assert wire["state"] == "<lm15-image-1>"
+    assert wire["assets"] == {"<lm15-image-1>": {"type": "image", "format": "png", "data_base64": png}}
+    assert dict(built.headers)["TypeSafe-Danger-Zone-Images"] == "true"
+    assert list(lm.plan(one)) == []  # nothing the caller asked for was changed
+    # D2: an image beside other parts — the parts in order, as an array.
+    mixed = Request(model="jev-latest", messages=(Message.user(["A red ball.", image(data=png, media_type="image/png"), data({"k": 1}),
+                                                                 image(data=jpg, media_type="image/jpeg")]),), config=fmt)
+    wire = json.loads(lm.build_request(mixed, stream=False).body)
+    assert wire["state"] == ["A red ball.", "<lm15-image-1>", {"k": 1}, "<lm15-image-2>"]
+    assert [a["format"] for a in wire["assets"].values()] == ["png", "jpg"]
+    # No image, no header.
+    built = lm.build_request(Request(model="jev-latest", messages=(NOTE,), config=fmt), stream=False)
+    assert "TypeSafe-Danger-Zone-Images" not in dict(built.headers) and "assets" not in json.loads(built.body)
+    # What has no slot is refused at the part, before any wire.
+    for part, why in [
+        (image(url="https://example.com/a.png"), "not a URL"),
+        (image(file_id="file_1"), "not a file id"),
+        (image(data="UklGRg==", media_type="image/webp"), "PNG or JPEG"),
+        (audio(data="UklGRg=="), "no slot on the systemone wire"),
+    ]:
+        with pytest.raises(UnsupportedFeatureError) as exc:
+            lm.build_request(Request(model="jev-latest", messages=(Message.user(["x", part]),), config=fmt), stream=False)
+        assert exc.value.feature == "messages[0].parts[1]" and why in str(exc.value)
 
 
 def test_typesafe_errors() -> None:
