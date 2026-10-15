@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **A saved cloud connection's settings are used.** A connection saved with
+  `auth.configure("vertex-anthropic", method="cloud", answers={"named": …},
+  settings={"project": …, "location": …})` now sends that project and
+  location; before, the router ignored them and fell back to the environment
+  and the defaults. A `RouterConfig(settings=…)` entry for the same provider
+  changes only the settings it names. Found and fixed by Rolf Fredheim
+  (#21). lm15-contract `1cbdc12`.
+- **`settings` accepts either spelling of a provider name**
+  (`"vertex_anthropic"` as well as `"vertex-anthropic"`), like `api_keys`
+  and `base_urls` already did, on every route and in `explain_auth`.
+
 ## 1.4.0 — 2026-10-14
 
 Jev reads pictures (lm15-contract `10645e5`, 1,911 of 1,911 checks).
