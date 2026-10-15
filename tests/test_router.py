@@ -930,3 +930,45 @@ class TestOpenAIChatDoor:
         sent = json.loads(transport.requests[0].body)
         assert sent["model"] == "gpt-4o-mini" and sent["messages"][0] == {"role": "system", "content": "Be brief."}
         assert sent["max_completion_tokens"] == 5 and sent["temperature"] == 0.0
+
+
+@pytest.mark.parametrize("router_type", [LMRouter, AsyncLMRouter])
+@pytest.mark.parametrize("spelling", ["vertex-anthropic", "vertex_anthropic"])
+def test_managed_cloud_settings_use_provider_aliases(monkeypatch, router_type, spelling):
+    from lm15.cloud import hosts
+    from lm15.login import Auth
+
+    resolve_settings = hosts.resolve_settings
+    seen = []
+
+    def resolve(host, given, *args, **kwargs):
+        seen.append(given)
+        return resolve_settings(host, given, *args, **kwargs)
+
+    monkeypatch.setattr(hosts, "resolve_settings", resolve)
+    router = router_type(RouterConfig(
+        auth=Auth.memory(), env={}, api_keys={"vertex-anthropic": "test-key"},
+        settings={spelling: {"project": "configured-project", "location": "us-central1"}},
+    ))
+    lm = router.lm("vertex-anthropic:claude-test")
+    assert lm.settings["project"] == "configured-project"
+    assert lm.settings["location"] == "us-central1"
+    router.plan(Request(model="vertex-anthropic:claude-test", messages=(Message.user("hi"),)))
+    assert seen and all(given["project"] == "configured-project" for given in seen)
+
+
+@pytest.mark.parametrize("router_type", [LMRouter, AsyncLMRouter])
+@pytest.mark.parametrize("override", [False, True])
+def test_managed_cloud_settings_preserve_saved_values(monkeypatch, router_type, override):
+    from lm15.cloud import chains
+    from lm15.login import Auth
+
+    monkeypatch.setattr(chains, "credential_provider", lambda *args, **kwargs: "test-key")
+    monkeypatch.setattr(chains, "profile_settings", lambda *args, **kwargs: lambda name: None)
+    auth = Auth.memory()
+    auth.configure("vertex-anthropic", method="cloud", answers={"named": "environment"},
+                   settings={"project": "saved-project", "location": "us-central1"})
+    explicit = {"vertex_anthropic": {"project": "explicit-project"}} if override else {}
+    lm = router_type(RouterConfig(auth=auth, env={}, settings=explicit)).lm("vertex-anthropic:claude-test")
+    assert lm.settings["project"] == ("explicit-project" if override else "saved-project")
+    assert lm.settings["location"] == "us-central1"
