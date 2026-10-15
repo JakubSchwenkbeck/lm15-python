@@ -7,7 +7,9 @@ same discipline as the code — see
 
 ## Where we are (October 2026)
 
-- **1.4.0** is the current release (2026-10-14): Jev reads pictures, on
+- **1.4.1** is the current release (2026-10-15): a saved cloud login's
+  project and location are used (found and fixed by Rolf Fredheim), on top of
+  **1.4.0** (2026-10-14: Jev reads pictures), on
   top of **1.3.0** (2026-10-12, never published on its own: the Meta login reaches
   the Muse Code subscription, Muse Wonder Full included),
   **1.2.3** (2026-10-10: a structured answer reads through

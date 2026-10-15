@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.4.1 — 2026-10-15
+
+A saved cloud login's settings are used (lm15-contract `1cbdc12`, 1,912 of 1,912 checks).
 
 - **A saved cloud connection's settings are used.** A connection saved with
   `auth.configure("vertex-anthropic", method="cloud", answers={"named": …},
