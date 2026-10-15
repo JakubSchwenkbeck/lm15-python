@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.5.0 — 2026-10-15
+
+Bounding boxes (lm15-contract `6dc1c5c`, 1,921 of 1,921 checks).
+
+- **Ask where something is in a picture.** `bounding_box("the coffee mug")`
+  declares a judgment whose answer is four numbers, `top`, `bottom`, `left`
+  and `right`, each a fraction of the picture from its top-left corner
+  (`r.data["mug"]`). On TypeSafe it is Jev 1.14's Box question
+  (`model="jev-preview"` or `"jev-1.14.0"`; lm15 sends the
+  `TypeSafe-Danger-Zone-Images: true` header with it); on OpenAI, Anthropic,
+  Gemini and others it is ordinary structured output, so the same program
+  runs anywhere (how close the box is depends on the model). A box is always
+  four edges: ask a `yes_no` beside it for "is it there". A box has no
+  probabilities, so `config.probabilities` concerns only the other
+  judgments; a request whose judgments are all boxes records and refuses
+  nothing. A hand-written object of the four `number` edges qualifies too.
+  `docs/cookbooks/20-judgments.md`; lm15-contract
+  `changes/2026-10-15-bounding-box.md`.
+
 ## 1.4.1 — 2026-10-15
 
 A saved cloud login's settings are used (lm15-contract `1cbdc12`, 1,912 of 1,912 checks).
