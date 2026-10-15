@@ -50,6 +50,8 @@ auth.login("xai", "device", ui=TerminalUI())     # device code shown in the term
 auth.set_api_key("groq", "gsk-…")                # a literal key, no verification
 auth.configure("gemini", method="env", answers={"name": "GEMINI_API_KEY"})   # use $GEMINI_API_KEY at request time
 auth.configure("claude-code", method="external:claude-code-cli")            # use your Claude Code login, read in place
+auth.configure("vertex", method="cloud", answers={"named": "cli"},
+               settings={"project": "my-project", "location": "us-east5"})  # your gcloud login, with its project
 
 auth.status("xai")                               # saved? ready / renewal_due / needs_login; expiry; no secrets
 auth.connections()

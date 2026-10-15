@@ -972,3 +972,16 @@ def test_managed_cloud_settings_preserve_saved_values(monkeypatch, router_type, 
     lm = router_type(RouterConfig(auth=auth, env={}, settings=explicit)).lm("vertex-anthropic:claude-test")
     assert lm.settings["project"] == ("explicit-project" if override else "saved-project")
     assert lm.settings["location"] == "us-central1"
+
+
+@pytest.mark.parametrize("router_type", [LMRouter, AsyncLMRouter])
+@pytest.mark.parametrize("spelling", ["vertex-anthropic", "vertex_anthropic"])
+def test_unmanaged_cloud_settings_accept_either_spelling(router_type, spelling):
+    from lm15.doctor import explain_auth
+
+    config = RouterConfig(env={}, api_keys={"vertex-anthropic": "test-key"},
+                          settings={spelling: {"project": "configured-project", "location": "us-central1"}})
+    lm = router_type(config).lm("vertex-anthropic:claude-test")
+    assert lm.settings == {"project": "configured-project", "location": "us-central1"}
+    report = explain_auth("vertex-anthropic", config=config)
+    assert dict(report.settings) == {"project": "configured-project", "location": "us-central1"}
