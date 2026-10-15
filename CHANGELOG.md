@@ -1,6 +1,21 @@
 # Changelog
 
-## 1.3.0 — 2026-10-12
+## 1.4.0 — 2026-10-14
+
+Jev reads pictures (lm15-contract `10645e5`, 1,911 of 1,911 checks).
+Includes 1.3.0, which was tagged but never published.
+
+- **Jev reads pictures.** Put a PNG or JPEG in the one user message, on
+  its own (`Message.user(image(path="door.jpg"))`) or beside text and data
+  (`Message.user(["Listing: a red mug.", image(path="a.png"), image(path="b.jpg")])`,
+  sent as an ordered list), and ask judgments about it. lm15 sends the bytes
+  where TypeSafe expects them and adds its `TypeSafe-Danger-Zone-Images: true`
+  opt-in header. TypeSafe calls images beta. A picture given by URL or file
+  id, another format (WebP, GIF), audio and video are refused before the
+  wire. Box questions are not supported yet. Tested live on jev-1.13.0;
+  lm15-contract `changes/2026-10-14-jev-images.md`.
+
+## 1.3.0 — 2026-10-12 (tagged, never published; shipped in 1.4.0)
 
 The Muse Code subscription, Muse Wonder Full included (lm15-contract
 `88bb560`, 1,905 of 1,905 checks).

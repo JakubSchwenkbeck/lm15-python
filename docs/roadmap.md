@@ -7,8 +7,9 @@ same discipline as the code — see
 
 ## Where we are (October 2026)
 
-- **1.3.0** is the current release (2026-10-12): the Meta login reaches
-  the Muse Code subscription (Muse Wonder Full included), on top of
+- **1.4.0** is the current release (2026-10-14): Jev reads pictures, on
+  top of **1.3.0** (2026-10-12, never published on its own: the Meta login reaches
+  the Muse Code subscription, Muse Wonder Full included),
   **1.2.3** (2026-10-10: a structured answer reads through
   `response.text`/`.json`, and a thinking budget alone is enough),
   **1.2.2** (2026-10-10: a refused key is `AuthError` on
