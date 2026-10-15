@@ -48,6 +48,36 @@ print(r.method, r.provider_data["coverage"])                 # 'candidate_sequen
 
 `probabilities="required"` refuses up front on a wire that cannot measure them (`UnsupportedFeatureError`, `feature="config.probabilities"`). The `method` travels with the numbers: a Jev distribution and a token-likelihood distribution have the same shape and are not the same measurement, and neither is calibrated on your data until you check.
 
+## Where is it? A bounding box
+
+`bounding_box` asks where in the picture something is. The answer is four numbers, each a fraction of the picture measured from its top-left corner: `top` and `bottom` of its height, `left` and `right` of its width.
+
+```python
+from lm15 import bounding_box
+from lm15.types import image
+
+where = judgments(
+    mug=bounding_box("the coffee mug"),
+    mug_visible=yes_no("Is there a coffee mug in the image?"),
+)
+r = router.complete(Request(model="jev-preview", messages=[Message.user(image(path="kitchen.jpg"))],
+                            config=Config(response_format=where)))
+print(r.data["mug"])      # {'top': 0.25, 'bottom': 0.82, 'left': 0.44, 'right': 0.84}
+
+from PIL import Image     # to crop: multiply by the picture's size in pixels
+photo = Image.open("kitchen.jpg")
+w, h = photo.size
+box = r.data["mug"]
+photo.crop((round(box["left"] * w), round(box["top"] * h), round(box["right"] * w), round(box["bottom"] * h))).save("mug.jpg")
+```
+
+- A box is always four edges, even when the thing is not there. Ask a `yes_no` beside it, as above, and ignore the box when the answer is no.
+- One box per question; to find two things, ask two boxes.
+- A box has no probabilities (it is answered, not picked from a list), so `config.probabilities` does not apply to it. Jev's own `confidence` for the box is in `r.provider_data["typesafe"]["answers"]["mug"]["confidence"]`.
+- On TypeSafe, boxes need Jev 1.14: `jev-preview` or `jev-1.14.0`. `jev-latest` was still 1.13 on 2026-10-15 and answers a bare "Invalid request.".
+- On other models the same request is ordinary structured output: the model writes the four numbers. How close they are depends on the model. On one test picture, Jev 1.14 and GPT-5.6 Luna were within 0.04 of the true edges, Claude Sonnet 4.5 and Gemini 2.5 Flash within about 0.15, and Claude Haiku 4.5 was off by 0.3 to 0.4.
+- The helper writes no `minimum`/`maximum` on the edges because Anthropic refuses them; the range is in each edge's description.
+
 ## Into a table
 
 ```python
@@ -66,5 +96,6 @@ df["quality"] = pd.Categorical(df.quality, categories=range(5), ordered=True)
 - Candidate-sequence likelihood is different: it normalizes measured log-likelihoods once over the key set as MAP-14 requires. A key set whose every likelihood is zero cannot be normalized and raises `ProviderError`. Malformed token/scoring responses are provider faults; missing requested token ids still trigger the documented `if_available` fallback or `required` refusal.
 - Structured input: `Message.user(data({...}))` sends a JSON value as the state, verbatim (Jev reads it as such; a text-only wire gets it as compact JSON).
 - Jev's state is the one user part and nothing else: no `system` (put context in the state as a named key, or in the question), no second message (put a transcript in the state as your own object). Both are refused with the native place named — `lm15-contract/changes/2026-09-19-jev-state.md`.
-- Pictures: `Message.user(image(path="door.jpg"))` makes the image Jev's state; `Message.user(["Listing: a red mug.", image(path="a.png"), image(path="b.jpg")])` sends the parts in order, as an array (a question can say "the second image" or point at `` `[2]` ``). PNG and JPEG bytes only: a URL, a file id, another format, audio or video is refused before the wire. lm15 sends TypeSafe's `TypeSafe-Danger-Zone-Images: true` header for you; TypeSafe calls images beta, so check answers on pictures you know. TypeSafe's Box questions are not supported. `lm15-contract/changes/2026-10-14-jev-images.md`.
+- Pictures: `Message.user(image(path="door.jpg"))` makes the image Jev's state; `Message.user(["Listing: a red mug.", image(path="a.png"), image(path="b.jpg")])` sends the parts in order, as an array (a question can say "the second image" or point at `` `[2]` ``). PNG and JPEG bytes only: a URL, a file id, another format, audio or video is refused before the wire. lm15 sends TypeSafe's `TypeSafe-Danger-Zone-Images: true` header for you; TypeSafe calls images beta, so check answers on pictures you know. `lm15-contract/changes/2026-10-14-jev-images.md`.
+- Bounding boxes: `lm15-contract/changes/2026-10-15-bounding-box.md`.
 - Contract: `lm15-contract/changes/2026-09-17-judgments.md`, MAP-14.
