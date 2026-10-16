@@ -36,6 +36,7 @@ def _body(lm, request: Request) -> dict:
 def test_openai_model_class_for_cache_options() -> None:
     assert openai_model_has_cache_options("gpt-5.6-sol")
     assert openai_model_has_cache_options("gpt-6.0")
+    assert openai_model_has_cache_options("gpt-6-luna")
     assert openai_model_has_cache_options("GPT-5.10")
     assert not openai_model_has_cache_options("gpt-5.5")
     assert not openai_model_has_cache_options("gpt-4.1-mini")
