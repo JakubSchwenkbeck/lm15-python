@@ -167,7 +167,7 @@ def _attach_unmapped(provider_data: dict[str, Any], unmapped: list[dict[str, str
     return out
 
 
-_GPT_VERSION_RE = re.compile(r"^gpt-(\d+)(?:\.(\d+))?(?:-|$)")
+_GPT_VERSION_RE = re.compile(r"^gpt-(?:(\d+)\.(\d+)|([1-9]))(?:-|$)")
 
 
 def openai_model_has_cache_options(model: str) -> bool:
@@ -182,7 +182,13 @@ def openai_model_has_cache_options(model: str) -> bool:
     ``extensions={"prompt_cache_options": ...}`` is the override.
     """
     m = _GPT_VERSION_RE.match(model.lower())
-    return bool(m) and (int(m.group(1)), int(m.group(2) or 0)) >= (5, 6)
+    if not m:
+        return False
+    if m.group(1) is not None:
+        major, minor = int(m.group(1)), int(m.group(2))
+    else:
+        major, minor = int(m.group(3)), 0
+    return (major, minor) >= (5, 6)
 
 
 def _cache_breakpoint_index(request: Request, cache_control: str) -> int | None:
